@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>StyleGAN</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #generatedImage {
+            margin-top: 30px;
+            width: 400px;
+            height: 400px;
+            object-fit: contain;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>StyleGAN Face Generator</h1>
+
+    <p>Generate a new face using the trained StyleGAN model.</p>
+
+    <button onclick="generateImage()">
+        Generate Image
+    </button>
+
+    <br>
+
+    <img id="generatedImage">
+
+    <script>
+
+        async function generateImage() {
+
+            const image = document.getElementById("generatedImage");
+
+            image.style.display = "none";
+
+            const response = await fetch("/generate");
+
+            const data = await response.json();
+
+            image.src = "data:image/png;base64," + data.image;
+
+            image.style.display = "block";
+        }
+
+    </script>
+
+</body>
+</html>

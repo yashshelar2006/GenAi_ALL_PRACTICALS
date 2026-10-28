@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4f0">
+  <title>Music maker</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #222722;
+      background: #f5f4f0;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    main { width: min(980px, calc(100% - 36px)); margin: 48px auto; }
+    header { margin-bottom: 30px; }
+    h1 { margin: 0 0 7px; font-size: 30px; font-weight: 650; letter-spacing: -0.7px; }
+    header p, .hint, .track-prompt { color: #68706a; }
+    header p { margin: 0; font-size: 15px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); gap: 22px; }
+    section { padding: 24px; border: 1px solid #dedfd8; border-radius: 10px; background: #fff; }
+    h2 { margin: 0 0 22px; font-size: 18px; font-weight: 600; }
+    label { display: block; margin: 17px 0 7px; font-size: 13px; font-weight: 600; }
+    select, textarea, input[type="range"] { width: 100%; }
+    select, textarea { border: 1px solid #cfd2ca; border-radius: 6px; background: #fff; color: inherit; font: inherit; }
+    select { height: 42px; padding: 0 10px; }
+    textarea { min-height: 125px; padding: 11px; resize: vertical; line-height: 1.5; }
+    select:focus, textarea:focus, input:focus-visible, button:focus-visible, a:focus-visible {
+      outline: 3px solid #b9cdb7; outline-offset: 2px;
+    }
+    input[type="range"] { accent-color: #496c50; }
+    .duration-row { display: flex; justify-content: space-between; align-items: center; }
+    .duration-value { color: #68706a; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .check-row { display: flex; align-items: center; gap: 9px; margin: 17px 0 21px; font-size: 14px; }
+    .check-row input { width: 16px; height: 16px; accent-color: #496c50; }
+    .check-row label { margin: 0; font-size: 14px; font-weight: 400; }
+    button, .download {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 42px;
+      border: 0; border-radius: 6px; padding: 0 16px; background: #496c50; color: #fff;
+      font: inherit; font-weight: 600; text-decoration: none; cursor: pointer;
+    }
+    button { width: 100%; }
+    button:hover, .download:hover { background: #38583e; }
+    button:disabled { cursor: wait; opacity: .65; }
+    .hint { margin: 13px 0 0; font-size: 12px; line-height: 1.5; }
+    .status { margin: 0 0 18px; color: #68706a; font-size: 13px; }
+    .status[data-ready="true"] { color: #396444; }
+    .status[data-ready="false"] { color: #a33d35; }
+    .empty { min-height: 173px; display: grid; align-content: center; text-align: center; color: #818780; }
+    .empty p { margin: 5px 0; font-size: 14px; }
+    .player { display: none; }
+    .player audio { display: block; width: 100%; margin: 16px 0; }
+    .track-prompt { margin: 13px 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+    .track-meta { color: #68706a; font-size: 12px; }
+    .notice { display: none; margin-top: 14px; border-radius: 6px; padding: 11px 12px; font-size: 13px; line-height: 1.5; }
+    .notice.error { display: block; background: #fbefed; color: #8f3028; }
+    .notice.info { display: block; background: #f1f3ef; color: #535b53; }
+    .history { margin-top: 22px; }
+    .history:empty { display: none; }
+    .history-item { padding: 13px 0; border-top: 1px solid #e7e8e2; }
+    .history-item:first-child { margin-top: 14px; }
+    .history-item p { margin: 0 0 9px; font-size: 13px; }
+    .history-item audio { display: block; width: 100%; }
+    @media (max-width: 700px) {
+      main { margin: 26px auto; }
+      .layout { grid-template-columns: 1fr; }
+      section { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Music maker</h1>
+      <p>Describe a sound and make a short track.</p>
+    </header>
+
+    <div class="layout">
+      <section aria-labelledby="prompt-heading">
+        <h2 id="prompt-heading">Create a track</h2>
+        <form id="music-form">
+          <label for="genre">Style</label>
+          <select id="genre" name="genre">
+            <option>Jazz</option>
+            <option>Classical</option>
+            <option>Lo-fi</option>
+            <option>Hip-hop</option>
+            <option>Pop</option>
+            <option>Rock</option>
+            <option>Electronic</option>
+            <option>Ambient</option>
+            <option>Cinematic</option>
+            <option>Blues</option>
+            <option>Folk</option>
+            <option>No specific genre</option>
+          </select>
+
+          <label for="prompt">What should it sound like?</label>
+          <textarea id="prompt" name="prompt" maxlength="500" required
+            placeholder="For example: warm piano, soft drums, and a relaxed late-night feel">Warm piano chords, upright bass, relaxed brushed drums, intimate late-night jazz club atmosphere</textarea>
+
+          <div class="duration-row">
+            <label for="duration">Length</label>
+            <span class="duration-value"><span id="duration-value">5</span> seconds</span>
+          </div>
+          <input id="duration" name="duration" type="range" min="3" max="15" value="5">
+
+          <div class="check-row">
+            <input id="instrumental" name="instrumental" type="checkbox" checked>
+            <label for="instrumental">Instrumental, no vocals</label>
+          </div>
+          <button id="generate-button" type="submit">Create track</button>
+          <p class="hint">The first track may take longer while the base model loads. CPU generation can be slow.</p>
+        </form>
+        <div id="notice" class="notice" role="status" aria-live="polite"></div>
+      </section>
+
+      <section aria-labelledby="player-heading">
+        <h2 id="player-heading">Your track</h2>
+        <p id="adapter-status" class="status">Checking adapter…</p>
+        <div id="empty-state" class="empty">
+          <p>Your track will appear here.</p>
+          <p>Generation history stays in this browser session.</p>
+        </div>
+        <div id="player" class="player">
+          <audio id="audio" controls></audio>
+          <p id="track-prompt" class="track-prompt"></p>
+          <p id="track-meta" class="track-meta"></p>
+          <a id="download-link" class="download" download>Download WAV</a>
+        </div>
+        <div id="history" class="history"></div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const form = document.querySelector("#music-form");
+    const generateButton = document.querySelector("#generate-button");
+    const duration = document.querySelector("#duration");
+    const durationValue = document.querySelector("#duration-value");
+    const adapterStatus = document.querySelector("#adapter-status");
+    const notice = document.querySelector("#notice");
+    const emptyState = document.querySelector("#empty-state");
+    const player = document.querySelector("#player");
+    const history = document.querySelector("#history");
+
+    duration.addEventListener("input", () => {
+      durationValue.textContent = duration.value;
+    });
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch("/api/status");
+        const status = await response.json();
+        adapterStatus.textContent = status.adapter_ready
+          ? `Adapter ready · ${status.device.toUpperCase()}`
+          : "Adapter files were not found. Check LORA_ADAPTER_PATH in .env.";
+        adapterStatus.dataset.ready = String(status.adapter_ready);
+      } catch {
+        adapterStatus.textContent = "Could not check the local model status.";
+        adapterStatus.dataset.ready = "false";
+      }
+    }
+
+    function showTrack(track) {
+      emptyState.hidden = true;
+      player.style.display = "block";
+      const audio = document.querySelector("#audio");
+      audio.src = track.audio_url;
+      audio.load();
+      document.querySelector("#track-prompt").textContent = track.prompt;
+      document.querySelector("#track-meta").textContent =
+        `About ${track.duration.toFixed(1)} seconds · ${track.sample_rate.toLocaleString()} Hz`;
+      const downloadLink = document.querySelector("#download-link");
+      downloadLink.href = track.audio_url;
+      downloadLink.download = track.filename;
+
+      const item = document.createElement("div");
+      item.className = "history-item";
+      const promptText = document.createElement("p");
+      promptText.textContent = track.prompt;
+      const historyAudio = document.createElement("audio");
+      historyAudio.controls = true;
+      historyAudio.src = track.audio_url;
+      item.append(promptText, historyAudio);
+      history.prepend(item);
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      notice.className = "notice";
+      notice.textContent = "";
+      generateButton.disabled = true;
+      generateButton.textContent = "Creating track…";
+
+      try {
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: document.querySelector("#prompt").value,
+            genre: document.querySelector("#genre").value,
+            duration: Number(duration.value),
+            instrumental: document.querySelector("#instrumental").checked,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Track generation failed.");
+        showTrack(result);
+        notice.className = "notice info";
+        notice.textContent = "Your track is ready.";
+        await refreshStatus();
+      } catch (error) {
+        notice.className = "notice error";
+        notice.textContent = error.message;
+      } finally {
+        generateButton.disabled = false;
+        generateButton.textContent = "Create track";
+      }
+    });
+
+    refreshStatus();
+  </script>
+</body>
+</html>
